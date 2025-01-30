@@ -7,6 +7,7 @@ import { ajax } from '../src/ajax.js';
 const BIDDER_CODE = 'defineMedia';
 const IAB_GVL_ID = 755;
 const SUPPORTED_MEDIA_TYPES = [BANNER];
+
 const ENDPOINT_URL_DEV = 'https://rtb-dev.conative.network/openrtb2/auction';
 const ENDPOINT_URL_PROD = 'https://rtb.conative.network/openrtb2/auction';
 const METHOD = 'POST';
@@ -24,11 +25,10 @@ export const spec = {
   supportedMediaTypes: SUPPORTED_MEDIA_TYPES,
 
   isBidRequestValid: (bid) => {
-    const hasRtbPublisher = Boolean(bid?.params?.rtbPublisherId);
     const hasSupplierDomainName = Boolean(bid?.params?.supplierDomainName);
     const isDevMode = Boolean(bid?.params?.devMode);
-    utils.logInfo(`[${BIDDER_CODE}] isBidRequestValid called with:`, { bid, hasRtbPublisher, hasSupplierDomainName, isDevMode });
-    const isValid = hasRtbPublisher && hasSupplierDomainName;
+    utils.logInfo(`[${BIDDER_CODE}] isBidRequestValid called with:`, { bid, hasSupplierDomainName, isDevMode });
+    const isValid = hasSupplierDomainName;
     utils.logInfo(`[${BIDDER_CODE}] isBidRequestValid returned:`, isValid);
     return isValid;
   },
@@ -44,7 +44,6 @@ export const spec = {
     const isDevMode = Boolean(params?.devMode);
     const endpointUrl = isDevMode ? ENDPOINT_URL_DEV : ENDPOINT_URL_PROD;
 
-    utils.deepSetValue(ortbRequest, 'site.publisher.id', '' + params.rtbPublisherId);
     utils.deepSetValue(ortbRequest, 'source.schain.complete', 1);
     utils.deepSetValue(ortbRequest, 'source.schain.nodes.0.asi', '' + params.supplierDomainName);
 
