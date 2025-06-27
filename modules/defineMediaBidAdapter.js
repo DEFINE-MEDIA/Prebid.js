@@ -34,7 +34,8 @@ export const spec = {
   },
 
   buildRequests: (validBidRequests, bidderRequest) => {
-    return validBidRequests.map(function(req) {
+    return validBidRequests?.map(function(req) {
+      console.log(req)
       const oneBidRequest = [JSON.parse(JSON.stringify(req))];
       const ortbRequest = converter.toORTB({oneBidRequest, bidderRequest});
 
