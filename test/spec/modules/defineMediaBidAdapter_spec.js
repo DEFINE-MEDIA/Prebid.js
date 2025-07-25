@@ -2,70 +2,83 @@
 import {assert, expect} from 'chai';
 import {getStorageManager} from 'src/storageManager.js';
 import {spec} from 'modules/defineMediaBidAdapter.js';
+import { deepClone } from 'src/utils.js';
+
+const BIDDER_CODE = 'defineMedia';
 
 describe('Define Media Bid Adapter', function () {
-  const mockValidBidParams = [
+  const auctionId = 'b06c5141-fe8f-4cdf-9d7d-54415490a917';
+  const bidderRequestId = "15246a574e859f";
+  const auctionStart = new Date().getTime();
+  const mediaTypes = ['banner'];
+
+  const mockValidBids = [
     {
-      'bidder': 'defineMedia',
-      'params': {
+      adUnitCode: "test-div",
+      auctionId: auctionId,
+      bidId: "aacf1ab7fb6c3e",
+      bidder: BIDDER_CODE,
+      bidderRequestId: bidderRequestId,
+      bidRequestsCount: 1,
+      bidderRequestsCount: 1,
+      auctionsCount: 1,
+      bidderWinsCount: 0,
+      mediaTypes: {banner: {
+        sizes: [[350, 200]],
+      }},
+      params:{
         'supplierDomainName': 'definemedia.de',
         'devMode': true
-      }
-    },
-    {
-      'bidder': 'defineMedia',
-      'mediaTypes': ['banner'],
-      'params': {
-        'supplierDomainName': 'definemedia.de',
-        'devMode': false
-      }
+      },
+      src: "client",
+      transactionId: "54a58774-7a41-494e-9aaf-fa7b79164f0c"
     }
   ];
 
-  const mockInvalidBidParams = [
-    {
-      'bidder': 'defineMedia',
-      'params': {}
+  const mockBidderRequest = {
+    auctionId: auctionId,
+    auctionStart: auctionStart,
+    bidderCode: BIDDER_CODE,
+    bidderRequestId: bidderRequestId,
+    bids: mockValidBids,
+    gdprConsent: {consentString: "BOtmiBKOtmiBKABABAENAFAAAAACeAAA", gdprApplies: true},
+    //    ortb2: {...},
+    refererInfo: {
+      canonicalUrl: null,
+      page: "http://mypage.org?pbjs_debug=true",
+      domain: "mypage.org",
+      referer: null,
+      numIframes: 0,
+      reachedTop: true,
+      isAmp: false,
+      stack: ["http://mypage.org?pbjs_debug=true"]
     }
-  ];
-
-  const mockBidRequests =  [{
-    bidId: 'bidId',
-    params: {
-      'supplierDomainName': 'definemedia.de',
-      'devMode': false
-    },
-    mediaType: {
-      banner: {}
-    }
-  }];
-
+  }
 
   describe('isBidRequestValid', function () {
     it('should return true when required params found', function () {
-      for (const bidRequest of mockValidBidParams) {
+      for (const bidRequest of mockValidBids) {
         assert.isTrue(spec.isBidRequestValid(bidRequest));
       }
     });
 
     it('should return false when supplierDomainName is not set', function () {
-      for (const bidRequest of mockInvalidBidParams) {
+      let invalidBids = deepClone(mockValidBids);
+      for (const bidRequest of invalidBids) {
+        bidRequest.params = {};
         assert.isFalse(spec.isBidRequestValid(bidRequest));
       }
     });
   });
 
-
   describe('buildRequests', function () {
-    const mockBidderRequest = {
-      refererInfo: {
-        referer: 'page'
-      }
-    }
-
+    beforeEach(function () {
+      sinon.useFakeXMLHttpRequest();
+      // Add logic to capture and inspect XHR requests
+    });
 
     it('should send request with correct structure', function () {
-      let requests = spec.buildRequests(mockBidRequests, mockBidderRequest);
+      let requests = spec.buildRequests(mockValidBids, mockBidderRequest);
 
       for (const request of requests) {
         assert.equal(request.method, 'POST');
@@ -73,10 +86,9 @@ describe('Define Media Bid Adapter', function () {
       }
     });
 
-
     it('should have default request structure', function () {
       let keys = 'id,imp,source'.split(',');
-      let requests = spec.buildRequests(mockBidRequests, mockBidderRequest);
+      let requests = spec.buildRequests(mockValidBids, mockBidderRequest);
 
       for (const request of requests) {
         let data = Object.keys(request.data);
@@ -86,15 +98,13 @@ describe('Define Media Bid Adapter', function () {
 
     it('Verify the site url', function () {
       let siteUrl = 'https://www.yourdomain.tld/your-directory/';
-      let bidderRequest = JSON.parse(JSON.stringify(mockBidderRequest));
-      let validBidRequests = JSON.parse(JSON.stringify(mockBidRequests));
+      let bidderRequest = deepClone(mockBidderRequest);
 
-      for (let req of validBidRequests) {
-        req.params.url = siteUrl;
-      }
+      bidderRequest.refererInfo.page = siteUrl;
 
-      bidderRequest.refererInfo.referer = siteUrl;
-      let requests = spec.buildRequests(validBidRequests, bidderRequest);
+      console.log(JSON.stringify(bidderRequest, null, 2));
+
+      let requests = spec.buildRequests(mockValidBids, bidderRequest);
 
       for (const request of requests) {
         console.log(JSON.stringify(request.data, null, 2));
